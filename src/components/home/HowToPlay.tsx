@@ -1,4 +1,3 @@
-
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,10 +43,16 @@ export function HowToPlay() {
           <CardContent>
             <ul className="list-disc pl-5 space-y-2 text-muted-foreground">
               <li>
-                <strong>Aim & Shoot:</strong> Click and drag away from the ball. The direction and distance determine aim and power. Release to shoot.
+                <strong>Aim & Shoot:</strong> Left-click and drag away from the ball. The direction and distance determine aim and power. Release to shoot.
               </li>
               <li>
-                <strong>Camera View:</strong> The camera automatically follows the ball to keep the action in frame.
+                <strong>Camera Orbit:</strong> Right-click and drag to rotate the camera around the scene.
+              </li>
+               <li>
+                <strong>Camera Pan:</strong> Left-click and drag to pan the camera across the scene.
+              </li>
+              <li>
+                <strong>Camera Zoom:</strong> Use the mouse scroll wheel to zoom in and out.
               </li>
             </ul>
           </CardContent>
@@ -65,7 +70,10 @@ export function HowToPlay() {
                   <strong>Aim & Shoot:</strong> Tap and drag on the screen away from the ball. Release to shoot.
                 </li>
                  <li>
-                  <strong>Camera View:</strong> The camera automatically follows the ball to keep the action in frame.
+                  <strong>Camera Orbit:</strong> Use a one-finger drag to orbit the camera.
+                </li>
+                 <li>
+                  <strong>Camera Zoom/Pan:</strong> Use standard two-finger pinch and drag gestures.
                 </li>
             </ul>
           </CardContent>
