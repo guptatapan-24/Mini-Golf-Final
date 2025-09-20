@@ -13,14 +13,13 @@ A modern, 3D minigolf game built for the web. This project, created for *CloneFe
 
 ## 📷 Screenshot
 
-
-Replace with an actual screenshot of your project.
+📂 *Sample Images Folder:* [Mini-Golf Screenshots Folder](https://drive.google.com/drive/folders/1zjaP-_n3UtZm8_BLwgOtTj9ChSJokiwS?usp=drive_link)
 
 ---
 
 ## 🎥 Video
 
-🔗 *Demo Video:* [https://drive.google.com/file/d/1nm59ipQybLnF22Kb1AzrWiixl0KV8saZ/view?usp=drive_link](https://drive.google.com/file/d/1nm59ipQybLnF22Kb1AzrWiixl0KV8saZ/view?usp=drive_link)
+🎥 *Demo Video:* [https://drive.google.com/file/d/1nm59ipQybLnF22Kb1AzrWiixl0KV8saZ/view?usp=drive_link](https://drive.google.com/file/d/1nm59ipQybLnF22Kb1AzrWiixl0KV8saZ/view?usp=drive_link)
 
 ---
 
