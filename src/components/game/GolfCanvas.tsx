@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { useRef, useEffect, MutableRefObject } from 'react';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { Level } from '@/lib/levels';
 
 // --- A dedicated class to manage the Three.js game world ---
@@ -11,6 +10,7 @@ export class Game {
   private scene: THREE.Scene;
   private camera: THREE.PerspectiveCamera;
   private renderer: THREE.WebGLRenderer;
+  private controls: OrbitControls;
   private ballMesh: THREE.Mesh;
   private holeMesh: THREE.Mesh;
   private obstacles: THREE.Mesh[] = [];
@@ -71,6 +71,26 @@ export class Game {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     this.mount.appendChild(this.renderer.domElement);
+
+    // --- Controls ---
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+    this.controls.screenSpacePanning = false;
+    this.controls.minDistance = 2;
+    this.controls.maxDistance = 30;
+    this.controls.maxPolarAngle = Math.PI / 2 - 0.05; // Prevent camera from going under ground
+    this.controls.target.set(this.level.startPosition[0], 0, this.level.startPosition[2]);
+    this.controls.mouseButtons = {
+        LEFT: THREE.MOUSE.PAN, // Pan with left click
+        MIDDLE: THREE.MOUSE.DOLLY,
+        RIGHT: THREE.MOUSE.ROTATE // Rotate with right click
+    }
+    this.controls.touches = {
+        ONE: THREE.TOUCH.ROTATE,
+        TWO: THREE.TOUCH.DOLLY_PAN
+    }
+
 
     this.addLights();
     this.createLevel();
@@ -345,33 +365,35 @@ export class Game {
   
     private handleTouchStart = (event: TouchEvent) => {
         if (event.touches.length === 1) {
-            event.preventDefault();
             this.handlePointerDown(event.touches[0] as unknown as PointerEvent);
         }
     };
 
     private handleTouchMove = (event: TouchEvent) => {
         if (event.touches.length === 1) {
-            event.preventDefault();
             this.handlePointerMove(event.touches[0] as unknown as PointerEvent);
         }
     };
 
-    private handleTouchEnd = (event: TouchEvent) => {
+    private handleTouchEnd = () => {
          this.handlePointerUp();
     };
 
   private handlePointerDown = (event: PointerEvent) => {
+    // Check if it's the primary button (for mouse)
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+
     if (this.isGamePaused() || this.isBallMoving || this.isHoleCompleted) return;
 
     this.isDragging = true;
     this.dragStartPosition.set(event.clientX, event.clientY);
     this.dragCurrentPosition.copy(this.dragStartPosition);
+    this.controls.enabled = false;
   };
 
   private handlePointerMove = (event: PointerEvent) => {
     if (this.isDragging) {
-      const sensitivity = 0.25; // Lower is less sensitive
+      const sensitivity = 1;
       const deltaX = (event.clientX - this.dragStartPosition.x) * sensitivity;
       const deltaY = (event.clientY - this.dragStartPosition.y) * sensitivity;
       this.dragCurrentPosition.set(this.dragStartPosition.x + deltaX, this.dragStartPosition.y + deltaY);
@@ -382,6 +404,7 @@ export class Game {
     if (!this.isDragging) return;
 
     this.isDragging = false;
+    this.controls.enabled = true;
     
     if (this.chargePower < 5) { // Cancel shot if not enough power
         this.setPower(0);
@@ -500,31 +523,25 @@ export class Game {
 
 
  private updateCamera() {
-    const cameraOffset = new THREE.Vector3(0, 5, 8);
-    const targetPosition = new THREE.Vector3(
-        this.ballMesh.position.x,
-        0, // IMPORTANT: Ignore ball's y position for the target calculation
-        this.ballMesh.position.z
-    ).add(cameraOffset);
+    if (this.isBallMoving) {
+        const cameraOffset = new THREE.Vector3(0, 5, 8);
+        const targetPosition = this.ballMesh.position.clone().add(cameraOffset);
+        
+        // Smoothly interpolate the camera's position
+        this.camera.position.lerp(targetPosition, 0.05);
 
-    // Smoothly interpolate the camera's position
-    const lerpFactor = 0.05;
-    
-    // Smoothly interpolate x and z
-    this.camera.position.x = THREE.MathUtils.lerp(this.camera.position.x, targetPosition.x, lerpFactor);
-    this.camera.position.z = THREE.MathUtils.lerp(this.camera.position.z, targetPosition.z, lerpFactor);
-    
-    // Smoothly interpolate y, but prevent it from going below a certain height
-    const minCameraHeight = 1;
-    const targetY = Math.max(targetPosition.y, minCameraHeight);
-    this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, targetY, lerpFactor);
-    
-    // The camera should always look at the ball's horizontal plane to prevent vibration
-    const lookAtPosition = new THREE.Vector3(this.ballMesh.position.x, 0, this.ballMesh.position.z);
-    this.camera.lookAt(lookAtPosition);
+        // Smoothly interpolate the controls target
+        const targetLookAt = this.ballMesh.position.clone();
+        this.controls.target.lerp(targetLookAt, 0.1);
+    } else {
+        // When the ball is not moving, the user can control the camera freely.
+        // The target is updated by OrbitControls.
+    }
   }
 
   private update() {
+    this.controls.update();
+
     if (this.isGamePaused()) {
         // Update the indicator rotation even when paused
         this.interactionIndicator.rotation.z += 0.01;
@@ -636,6 +653,7 @@ export class Game {
     this.renderer.domElement.removeEventListener('touchstart', this.handleTouchStart);
     this.renderer.domElement.removeEventListener('touchmove', this.handleTouchMove);
     window.removeEventListener('touchend', this.handleTouchEnd);
+    this.controls.dispose();
 
 
     if (this.mount && this.renderer.domElement) {
@@ -703,9 +721,7 @@ const GolfCanvas: React.FC<GolfCanvasProps> = ({ level, onStroke, onHoleComplete
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [level]); // Key change: This effect now ONLY re-runs if the level changes.
 
-  return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full touch-action-none" />;
+  return <div ref={mountRef} className="absolute top-0 left-0 w-full h-full touch-none" />;
 };
 
 export default GolfCanvas;
-
-    
